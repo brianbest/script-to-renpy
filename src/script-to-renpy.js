@@ -1,10 +1,14 @@
 
 class ScriptToRenPy {
-    constructor() {
-        this.speakers = [];
+    constructor(script = "") {
+        this.speakers = {};
         this.lines = [];
         this.renpyOutput = "";
         this.script = "";
+
+        if (script !== "") {
+            this.setScript(script);
+        }
     }
 
     setScript(script) {
@@ -21,7 +25,7 @@ class ScriptToRenPy {
         
         this.lines = this.breakTextIntoLines(this.script);
         this.speakers = this.findAllSpeakersInDocument(this.script);
-        this.renpyOutput = this.generateRenpyScript(this.speakers, this.lines);
+        this.renpyOutput = this.generateRenpyScript(Object.keys(this.speakers), this.lines);
         return this.renpyOutput;
     }
 
@@ -31,18 +35,13 @@ class ScriptToRenPy {
     }
     
     findAllSpeakersInDocument(doctxt) {
-        var allText = doctxt;
-        var allSpeakers = removeDuplicateSpeakers(allText.match(/^(.*?):/gm).map( (speaker) => {
-            return speaker.replace(/:/g, "");
-        }));
-        
-        return allSpeakers;
-    }
-    
-    removeDuplicateSpeakers(speakers) {
-        return speakers.filter((speaker, index) => {
-            return speakers.indexOf(speaker) === index;
+        let speakers = {};
+        doctxt.match(/^(.*?):/gm).forEach( (speaker) => {
+            speaker = speaker.replace( ":", "");
+            speakers[speaker] = speaker;
         });
+
+        return speakers;
     }
     
     generateRenpyScript(speakers, lines) {
@@ -50,24 +49,26 @@ class ScriptToRenPy {
         speakers.forEach((speaker) => {
             renpyScript += `define ${speaker} = Character("${speaker}")\n`;
         });
-        renpyScript += "\n label start:\n";
+        renpyScript += "\nlabel start:\n";
     
         lines.forEach((line) => {
-            renpyScript += printLineWithSpeaker(line, speakers);
+            renpyScript += this.printLineWithSpeaker(line);
         });
-    
+        renpyScript += "\n\treturn\n";
         return renpyScript;
     }
     
-    printLineWithSpeaker(line, speakers) {
-        let speaker = "";
-        speakers.forEach((speaker) => {
-            if (line.startsWith(speaker)) {
-                line = line.replace(speaker, "");
-                speaker = speaker;
-            }
-        });
-        return `${speaker} "${line}"\n`;
+    printLineWithSpeaker(line) {
+        let speaker = line.match(/^(.*?):/gm);
+        if (speaker === null) {
+            line = line.replace(/^"|"$/g, ''); // Remove quotes
+            return `\t"${line}"\n`;
+        } else {
+            speaker = speaker[0].replace( ":", "");
+            line = line.replace(speaker + ": ", "");
+            line = line.replace(/^"|"$/g, ''); // Remove quotes
+            return `\t ${this.speakers[speaker]} "${line}"\n`;
+        }      
     }
 };
 
