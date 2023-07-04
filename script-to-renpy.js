@@ -27,6 +27,23 @@ function generateRenpyScript(speakers, lines) {
     let renpyScript = "";
     speakers.forEach((speaker) => {
         renpyScript += `define ${speaker} = Character("${speaker}")\n`;
-    }
-    
+    });
+    renpyScript += "\n label start:\n";
+
+    lines.forEach((line) => {
+        renpyScript += printLineWithSpeaker(line, speakers);
+    });
+
+    return renpyScript;
+}
+
+function printLineWithSpeaker(line, speakers) {
+    let speaker = "";
+    speakers.forEach((speaker) => {
+        if (line.startsWith(speaker)) {
+            line = line.replace(speaker, "");
+            speaker = speaker;
+        }
+    });
+    return `${speaker} "${line}"\n`;
 }
